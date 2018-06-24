@@ -11,14 +11,26 @@ while test $# -gt 0; do
                         echo " "
                         echo "options:"
                         echo "-h, --help		Display this help"
-                        echo "-p			Toggle play/pause"
-			echo "-m			Toggle mute/unmute"
+                        echo "-t, --toggle-play		Toggle play/pause"
+			echo "-p, --previous-track	Previous track"
+			echo "-s, --skip-track		Skip track"
+			echo "-m, --toggle-mute		Toggle mute/unmute"
 			echo "-vu, --volume-up		Increase volume by 5%"
 			echo "-vd, --volume-down	Decrease volume by 5%"
                         exit 0
                         ;;
-                -p)
-			dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause
+                -t | --toggle)
+			dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause > /dev/null
+			break
+			;;
+		-p | --previous-track)
+			dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous > /dev/null
+			echo "Playing previous track"
+			break
+			;;
+		-s | --skip-track)
+			dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next > /dev/null
+			echo "Playing next track"
 			break
 			;;
 
@@ -27,12 +39,14 @@ while test $# -gt 0; do
 			echo "Increasing $CURRENT_MIXER_CONTROL by 5%"
 			break
 			;;
-                -vd | --volume-down)
+                
+		-vd | --volume-down)
                         amixer sset $CURRENT_MIXER_CONTROL 5%- > /dev/null
 			echo "Decreasing $CURRENT_MIXER_CONTROL by 5%"
 			break
                         ;;
-                -m)
+                
+		-m | --toggle-mute)
                         if [[ $CURRENT_STATE == '[on]' ]]; then
 				amixer sset $CURRENT_MIXER_CONTROL off > /dev/null
 				echo "Muting $CURRENT_MIXER_CONTROL"
@@ -46,8 +60,10 @@ while test $# -gt 0; do
 				exit 1;
 			fi
 			;;
+
                 *)
-                        break
+                        mediactrl -h
+			break
                         ;;
         esac
 done
