@@ -1,0 +1,54 @@
+#!/bin/sh
+CURRENT_STATE=`amixer get Master | egrep 'Playback.*?\[o' | egrep -m 1 -o '\[o.+\]'`
+CURRENT_MIXER_CONTROL=`amixer | grep Simple | egrep -m 1 -o "'[^']*'"`
+
+while test $# -gt 0; do
+        case "$1" in
+                -h|--help)
+                        echo "Control script for media keys"
+                        echo " "
+                        echo "mediactrl [options]"
+                        echo " "
+                        echo "options:"
+                        echo "-h, --help		Display this help"
+                        echo "-p			Toggle play/pause"
+			echo "-m			Toggle mute/unmute"
+			echo "-vu, --volume-up		Increase volume by 5%"
+			echo "-vd, --volume-down	Decrease volume by 5%"
+                        exit 0
+                        ;;
+                -p)
+				dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause
+
+			break
+			;;
+
+                -vu | --volume-up)
+			amixer sset $CURRENT_MIXER_CONTROL 5%+ > /dev/null
+			echo "Increasing $CURRENT_MIXER_CONTROL by 5%"
+			break
+			;;
+                -vd | --volume-down)
+                        amixer sset $CURRENT_MIXER_CONTROL 5%- > /dev/null
+			echo "Decreasing $CURRENT_MIXER_CONTROL by 5%"
+			break
+                        ;;
+                -m)
+                        if [[ $CURRENT_STATE == '[on]' ]]; then
+				amixer sset $CURRENT_MIXER_CONTROL off > /dev/null
+				echo "Muting $CURRENT_MIXER_CONTROL"
+				break
+			elif [[ $CURRENT_STATE == '[off]' ]]; then
+				amixer sset $CURRENT_MIXER_CONTROL on > /dev/null
+				echo "Unmuting $CURRENT_MIXER_CONTROL"
+				break
+			else
+				echo "CURRENT_STATE is $CURRENT_STATE. We weren't expecting that..."
+				exit 1;
+			fi
+			;;
+                *)
+                        break
+                        ;;
+        esac
+done
