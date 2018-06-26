@@ -1,0 +1,8 @@
+CV=`amixer | egrep 'Playback.*?\[[0-9]' | egrep -m 1 -o '\[[0-9][0-9]' | egrep -o '[0-9][0-9]'`
+RV=$CV
+
+echo $CV is CV
+echo $RV is RV
+CV=222
+echo $CV is CV
+echo $RV is RV

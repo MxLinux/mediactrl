@@ -1,9 +1,11 @@
 #!/bin/sh
-CURRENT_STATE=`amixer get Master | egrep 'Playback.*?\[o' | egrep -m 1 -o '\[o.+\]'`
 CURRENT_MIXER_CONTROL=`amixer | grep Simple | egrep -m 1 -o "'[^']*'"`
+CURRENT_STATE=`amixer get $CURRENT_MIXER_CONTROL | egrep 'Playback.*?\[o' | egrep -m 1 -o '\[o.+\]'`
+CURRENT_VOLUME=`amixer | egrep 'Playback.*?\[[0-9]' | egrep -m 1 -o '\[[0-9][0-9]' | egrep -o '[0-9][0-9]'`
+export REVERT_VOLUME=$CURRENT_VOLUME
 
 while test $# -gt 0; do
-        case "$1" in
+	case "$1" in
                 -h|--help)
                         echo "Control script for media keys"
                         echo " "
@@ -50,17 +52,37 @@ while test $# -gt 0; do
                         ;;
                 
 		-m | --toggle-mute)
-                        if [[ $CURRENT_STATE == '[on]' ]]; then
-				amixer sset $CURRENT_MIXER_CONTROL off > /dev/null
+                        #if [[ $CURRENT_STATE == '[on]' ]]; then
+			#	amixer sset $CURRENT_MIXER_CONTROL off > /dev/null
+			#	echo "Muting $CURRENT_MIXER_CONTROL"
+			#	break
+			#elif [[ $CURRENT_STATE == '[off]' ]]; then
+			#	amixer sset $CURRENT_MIXER_CONTROL on > /dev/null
+			#	echo "Unmuting $CURRENT_MIXER_CONTROL"
+			#	break
+			#else
+			#	echo "CURRENT_STATE is $CURRENT_STATE. We weren't expecting that..."
+			#	exit 1;
+			#fi
+			echo $REVERT_VOLUME - 1
+			if [[ $CURRENT_VOLUME > 0 ]]; then
+				echo $REVERT_VOLUME - 2
+				amixer sset $CURRENT_MIXER_CONTROL 0% > /dev/null
+				echo $REVERT_VOLUME - 3
 				echo "Muting $CURRENT_MIXER_CONTROL"
-				break
-			elif [[ $CURRENT_STATE == '[off]' ]]; then
-				amixer sset $CURRENT_MIXER_CONTROL on > /dev/null
-				echo "Unmuting $CURRENT_MIXER_CONTROL"
+				CURRENT_VOLUME=0
+				echo $CURRENT_VOLUME - 1
+				break	
+			elif [[ $CURRENT_VOLUME -eq 0 ]]; then
+				echo $REVERT_VOLUME - 4
+				echo $REVERT_VOLUME"% - 5"
+		       		amixer sset $CURRENT_MIXER_CONTROL $REVERT_VOLUME%
 				break
 			else
-				echo "CURRENT_STATE is $CURRENT_STATE. We weren't expecting that..."
-				exit 1;
+				amixer sset $CURRENT_MIXER_CONTROL " " $REVERT_VOLUME
+				echo $REVERT_VOLUME - 6
+				echo "Unmuting $CURRENT_MIXER_CONTROL"
+				break
 			fi
 			;;
 
