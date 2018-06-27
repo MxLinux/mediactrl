@@ -2,93 +2,83 @@
 CURRENT_MIXER_CONTROL=`amixer | grep Simple | egrep -m 1 -o "'[^']*'"`
 CURRENT_STATE=`amixer get $CURRENT_MIXER_CONTROL | egrep 'Playback.*?\[o' | egrep -m 1 -o '\[o.+\]'`
 CURRENT_VOLUME=`amixer | egrep 'Playback.*?\[[0-9]' | egrep -m 1 -o '\[[0-9][0-9]' | egrep -o '[0-9][0-9]'`
-export REVERT_VOLUME=$CURRENT_VOLUME
 
-while test $# -gt 0; do
-	case "$1" in
-                -h|--help)
-                        echo "Control script for media keys"
-                        echo " "
-                        echo "mediactrl [options]"
-                        echo " "
-                        echo "options:"
-                        echo "-h, --help		Display this help"
-                        echo "-t, --toggle-play		Toggle play/pause"
-			echo "-p, --previous-track	Previous track"
-			echo "-s, --skip-track		Skip track"
-			echo "-m, --toggle-mute		Toggle mute/unmute"
-			echo "-vu, --volume-up		Increase volume by 5%"
-			echo "-vd, --volume-down	Decrease volume by 5%"
-                        exit 0
-                        ;;
+if [ -z $1 ]
+then
+	echo $'Command requires an argument...\n'
+	./mediactrl -h
+	exit 1
+else
+	while test $# -gt 0; do
+		case "$1" in
+                	-h|--help)
+                	        echo "Control script for media keys"
+                	        echo "mediactrl [options]"
+                	        echo " "
+                	        echo "options:"
+                	        echo "-h, --help		Display this help"
+                	        echo "-t, --toggle-play		Toggle play/pause"
+				echo "-p, --previous-track	Previous track"
+				echo "-s, --skip-track		Skip track"
+				echo "-m, --toggle-mute		Toggle mute/unmute"
+				echo "-vu, --volume-up		Increase volume by 5%"
+				echo "-vd, --volume-down	Decrease volume by 5%"
+                	        exit 0
+                	        ;;
 
-                -t | --toggle)
-			dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause > /dev/null
-			break
-			;;
-
-		-p | --previous-track)
-			dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous > /dev/null
-			echo "Playing previous track"
-			break
-			;;
-
-		-s | --skip-track)
-			dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next > /dev/null
-			echo "Playing next track"
-			break
-			;;
-
-                -vu | --volume-up)
-			amixer sset $CURRENT_MIXER_CONTROL 5%+ > /dev/null
-			echo "Increasing $CURRENT_MIXER_CONTROL by 5%"
-			break
-			;;
-                
-		-vd | --volume-down)
-                        amixer sset $CURRENT_MIXER_CONTROL 5%- > /dev/null
-			echo "Decreasing $CURRENT_MIXER_CONTROL by 5%"
-			break
-                        ;;
-                
-		-m | --toggle-mute)
-                        #if [[ $CURRENT_STATE == '[on]' ]]; then
-			#	amixer sset $CURRENT_MIXER_CONTROL off > /dev/null
-			#	echo "Muting $CURRENT_MIXER_CONTROL"
-			#	break
-			#elif [[ $CURRENT_STATE == '[off]' ]]; then
-			#	amixer sset $CURRENT_MIXER_CONTROL on > /dev/null
-			#	echo "Unmuting $CURRENT_MIXER_CONTROL"
-			#	break
-			#else
-			#	echo "CURRENT_STATE is $CURRENT_STATE. We weren't expecting that..."
-			#	exit 1;
-			#fi
-			echo $REVERT_VOLUME - 1
-			if [[ $CURRENT_VOLUME > 0 ]]; then
-				echo $REVERT_VOLUME - 2
-				amixer sset $CURRENT_MIXER_CONTROL 0% > /dev/null
-				echo $REVERT_VOLUME - 3
-				echo "Muting $CURRENT_MIXER_CONTROL"
-				CURRENT_VOLUME=0
-				echo $CURRENT_VOLUME - 1
-				break	
-			elif [[ $CURRENT_VOLUME -eq 0 ]]; then
-				echo $REVERT_VOLUME - 4
-				echo $REVERT_VOLUME"% - 5"
-		       		amixer sset $CURRENT_MIXER_CONTROL $REVERT_VOLUME%
+                	-t | --toggle)
+				dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.PlayPause > /dev/null
 				break
-			else
-				amixer sset $CURRENT_MIXER_CONTROL " " $REVERT_VOLUME
-				echo $REVERT_VOLUME - 6
-				echo "Unmuting $CURRENT_MIXER_CONTROL"
-				break
-			fi
-			;;
+				;;
 
-                *)
-                        mediactrl -h
-			break
-                        ;;
-        esac
-done
+			-p | --previous-track)
+				dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Previous > /dev/null
+				echo "Playing previous track"
+				break
+				;;
+
+			-s | --skip-track)
+				dbus-send --print-reply --dest=org.mpris.MediaPlayer2.spotify /org/mpris/MediaPlayer2 org.mpris.MediaPlayer2.Player.Next > /dev/null
+				echo "Playing next track"
+				break
+				;;
+
+                	-vu | --volume-up)
+				amixer sset $CURRENT_MIXER_CONTROL 5%+ > /dev/null
+				echo "Increasing $CURRENT_MIXER_CONTROL by 5%"
+				break
+				;;
+
+			-vd | --volume-down)
+                	        amixer sset $CURRENT_MIXER_CONTROL 5%- > /dev/null
+				echo "Decreasing $CURRENT_MIXER_CONTROL by 5%"
+				break
+                		;;
+                
+			-m | --toggle-mute)
+				if [[ $CURRENT_VOLUME > 0 ]]; then
+					amixer sset $CURRENT_MIXER_CONTROL 0% > /dev/null
+					echo $CURRENT_VOLUME > .vol
+					echo "Muting $CURRENT_MIXER_CONTROL"
+					CURRENT_VOLUME=0
+					break	
+				elif [[ $CURRENT_VOLUME -eq 0 ]]; then
+					amixer sset $CURRENT_MIXER_CONTROL $(cat .vol)%
+					rm .vol
+					echo "Unmuting $CURRENT_MIXER_CONTROL"
+					break
+				else
+					echo "Something went wrong!"
+					break
+				fi
+				;;
+
+                	*)
+                	        echo "Invalid argument: $1"
+				echo " "
+				mediactrl -h
+				break
+                	        ;;
+        	esac
+	done
+fi
